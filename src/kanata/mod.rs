@@ -1605,15 +1605,33 @@ fn check_for_exit(event: &KeyEvent, kanata: &Mutex<Kanata>) {
     }
     const EXIT_MSG: &str = "pressed LControl+Space+Escape, exiting";
     {
+        #[cfg(target_os = "linux")]
+        const CRASH_LOG_DIR: &str = "/tmp";
+        #[cfg(target_os = "windows")]
+        const CRASH_LOG_DIR: &str = ".";
         use std::time::SystemTime;
         let k = kanata.lock();
-        let crash_time = SystemTime::UNIX_EPOCH.duration_since(SystemTime::now()).unwrap().as_secs();
-        let mut exit_log = std::fs::File::open(format!("kanata_manual_kill_{}", crash_time)).unwrap();
+        let crash_time = SystemTime::UNIX_EPOCH
+            .duration_since(SystemTime::now())
+            .unwrap()
+            .as_secs();
+        let mut exit_log = std::fs::File::open(format!(
+            "{}{}kanata_manual_kill_{}",
+            CRASH_LOG_DIR,
+            path::MAIN_SEPARATOR,
+            crash_time
+        ))
+        .unwrap();
         writeln!(exit_log, "cur keys: {:#?}", k.cur_keys).unwrap();
         writeln!(exit_log, "prev keys: {:#?}", k.prev_keys).unwrap();
         writeln!(exit_log, "layout states: {:#?}", k.layout.b().states).unwrap();
         writeln!(exit_log, "layout waiting: {:#?}", k.layout.b().waiting).unwrap();
-        writeln!(exit_log, "layout last state tracker: {:#?}", k.layout.b().last_press_tracker).unwrap();
+        writeln!(
+            exit_log,
+            "layout last state tracker: {:#?}",
+            k.layout.b().last_press_tracker
+        )
+        .unwrap();
     }
     if IS_ESC_PRESSED.load(SeqCst) && IS_SPC_PRESSED.load(SeqCst) && IS_LCL_PRESSED.load(SeqCst) {
         #[cfg(not(target_os = "linux"))]
